@@ -13,7 +13,7 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_YXB0LXRpY2stNDMuY2xlcmsuYWNjb3VudHMuZGV2JA",
-        "EXPO_PUBLIC_API_URL=https": "https://veronique-nonenviable-unserenely.ngrok-free.dev",
+        "EXPO_PUBLIC_API_URL": "https://veronique-nonenviable-unserenely.ngrok-free.dev",
         "EXPO_PUBLIC_GET_STREAM_API_KEY": "dke9yh24eaj5"
       },
       "ios": {

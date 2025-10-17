@@ -13,7 +13,9 @@
       "bitcode": false,
       "bundleIdentifier": "com.vahe.borisov.videocallingapp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Allow Video Calling App to access your camera for video calls.",
+        "NSMicrophoneUsageDescription": "Allow Video Calling App to access your microphone for audio calls."
       }
     },
     "android": {

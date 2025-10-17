@@ -2,7 +2,6 @@ import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Redirect, Tabs } from "expo-router";
 
 import {
-  StreamCall,
   StreamVideo,
   StreamVideoClient,
   User,
