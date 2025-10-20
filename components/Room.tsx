@@ -14,7 +14,7 @@ export default function Room({ slug }: RoomProps) {
   const router = useRouter();
 
   return (
-    <View>
+    <View style={{ flex: 1 }}>
       <View
         style={{
           position: "absolute",
