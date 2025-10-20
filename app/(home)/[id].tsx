@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import { useLocalSearchParams } from "expo-router";
 
+import Toast from "react-native-root-toast";
 import { useNavigation } from "@react-navigation/native";
 import {
   Call,
@@ -10,28 +10,13 @@ import {
   useStreamVideoClient,
 } from "@stream-io/video-react-native-sdk";
 
-import { ActivityIndicator, Alert, Platform, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
-async function ensureAVPermissions() {
-  const cameraPermission =
-    Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
-  const micPermission =
-    Platform.OS === "ios"
-      ? PERMISSIONS.IOS.MICROPHONE
-      : PERMISSIONS.ANDROID.RECORD_AUDIO;
+import { generateSlug } from "random-word-slugs";
 
-  const camStatus = await check(cameraPermission);
-  const micStatus = await check(micPermission);
+import Room from "@/components/Room";
 
-  if (camStatus !== RESULTS.GRANTED) await request(cameraPermission);
-  if (micStatus !== RESULTS.GRANTED) await request(micPermission);
-
-  // return true if both granted
-  return (
-    (await check(cameraPermission)) === RESULTS.GRANTED &&
-    (await check(micPermission)) === RESULTS.GRANTED
-  );
-}
+import { copySlug } from "@/lib/slug";
 
 export default function CallScreen() {
   const { id } = useLocalSearchParams();
@@ -39,7 +24,6 @@ export default function CallScreen() {
 
   const [call, setCall] = useState<Call | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const client = useStreamVideoClient();
 
@@ -48,110 +32,40 @@ export default function CallScreen() {
   }, [navigation]);
 
   useEffect(() => {
-    let mounted = true;
-    let createdCall: Call | null = null;
+    let slug: string;
 
-    const init = async () => {
-      try {
-        if (!client) {
-          console.warn("Stream client is not ready yet");
-          return;
-        }
+    if (id !== "(home)" && id) {
+      slug = id.toString();
+      const _call = client?.call("default", slug);
+      _call?.join({ create: false }).then(() => {
+        setCall(_call);
+      });
+    } else {
+      slug = generateSlug(3, {
+        categories: {
+          adjective: ["color", "personality"],
+          noun: ["animals", "food"],
+        },
+      });
+      const _call = client?.call("default", slug);
+      _call?.join({ create: true }).then(() => {
+        Toast.show(
+          "Call Created Successfully \n Tap here to copy the call ID to share!",
+          {
+            duration: Toast.durations.LONG,
+            position: Toast.positions.CENTER,
+            shadow: true,
+            onPress: async () => {
+              copySlug(slug);
+            },
+          },
+        );
+        setCall(_call);
+      });
+    }
 
-        // Request permissions first (important on iOS)
-        const ok = await ensureAVPermissions();
-        if (!ok) {
-          Alert.alert(
-            "Permissions required",
-            "Camera and microphone access are needed to join calls.",
-          );
-          // navigate back or stop initialization
-          setLoading(false);
-          return;
-        }
-
-        // your original slug + create logic
-        let slugLocal: string;
-        if (id !== "(home)" && id) {
-          console.log("if id exists");
-          slugLocal = id.toString();
-          createdCall = client.call("default", slugLocal);
-          // join with create: false
-          await createdCall.join({ create: false });
-          if (!mounted) {
-            // If unmounted immediately after join, leave
-            createdCall.leave().catch(() => {});
-            return;
-          }
-          setCall(createdCall);
-        } else {
-          console.log("if id does not exist");
-          slugLocal = "demoroom";
-          createdCall = client.call("default", slugLocal);
-          // join with create: true
-          console.log("join");
-          await createdCall.join({ create: true });
-          if (!mounted) {
-            createdCall.leave().catch(() => {});
-            return;
-          }
-          console.log("Claas");
-          setCall(createdCall);
-        }
-
-        setSlug(slugLocal);
-      } catch (err) {
-        console.error("Error while joining call:", err);
-        Alert.alert("Error", "Failed to join the call. Please try again.");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    init();
-
-    return () => {
-      mounted = false;
-      // cleanup: leave the call if it's still active
-      if (createdCall && createdCall.state.callingState !== CallingState.LEFT) {
-        createdCall.leave().catch((e) => {
-          console.warn("Error leaving call on unmount:", e);
-        });
-      }
-    };
-  }, [client, id]);
-
-  // useEffect(() => {
-  //   // console.log(client, "client");
-  //   let slug: string;
-  //
-  //   if (id !== "(home)" && id) {
-  //     console.log("if id exists");
-  //     slug = id.toString();
-  //     const _call = client?.call("default", slug);
-  //     _call?.join({ create: false }).then(() => {
-  //       setCall(_call);
-  //     });
-  //   } else {
-  //     console.log("if id does not exist");
-  //     slug = "demoroom";
-  //     const _call = client?.call("default", slug);
-  //     _call
-  //       ?.join({ create: true })
-  //       .then(() => {
-  //         console.log("Claas");
-  //         setCall(_call);
-  //       })
-  //       .catch(() => {
-  //         console.log("Error creating call");
-  //       })
-  //       .finally(() => {
-  //         console.log("Finalyy call");
-  //       });
-  //   }
-  //
-  //   setSlug(slug);
-  // }, [id, client]);
+    setSlug(slug);
+  }, [id, client]);
 
   useEffect(() => {
     if (call?.state.callingState !== CallingState.LEFT) {
@@ -166,20 +80,9 @@ export default function CallScreen() {
       </View>
     );
 
-  if (
-    call?.state.callingState === CallingState.JOINING ||
-    call?.state.callingState === CallingState.IDLE
-  )
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-        <Text>Joining call...</Text>
-      </View>
-    );
-
   return (
     <StreamCall call={call}>
-      <Text>Call Screen</Text>
+      <Room slug={slug} />
     </StreamCall>
   );
 }
